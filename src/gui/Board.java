@@ -7,8 +7,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
@@ -17,7 +20,8 @@ import java.util.Observer;
 
 public class Board extends JFrame {//这里不要继承hall,否则每次调用board都会重新触发hall的构造函数
   //棋盘界面
-
+  Socket s = null;//将socket共享出来
+  DataOutputStream dos = null;
   JPanel boardAll = new JPanel();
   MyPanel mp;
   JTextField msg = new JTextField(5);
@@ -117,11 +121,11 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     send.setBounds(120, 0, 80, 30);
     chat.add(display, BorderLayout.NORTH);
     msgAndSend.setLayout(null);
-    msgAndSend.setPreferredSize(new Dimension(150,30));
-    display.setPreferredSize(new Dimension(150,178));
+    msgAndSend.setPreferredSize(new Dimension(150, 30));
+    display.setPreferredSize(new Dimension(150, 178));
     msgAndSend.add(msg);
     msgAndSend.add(send);
-    chat.add(msgAndSend,BorderLayout.SOUTH);
+    chat.add(msgAndSend, BorderLayout.SOUTH);
 
     msg.addActionListener(new TFListen());
     mp = new MyPanel();
@@ -133,22 +137,39 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
 
     @Override
     public void actionPerformed(ActionEvent e) {
-      String s = msg.getText().trim();
-      display.setText(s);
+      String str = msg.getText().trim();//trim消除两边的空格
+      //display.setText(str);
       msg.setText("");
+      try {
+        dos.writeUTF(str);//将字符串写出去
+        dos.flush();
+        //dos.close();
+      } catch (IOException e1) {
+        e1.printStackTrace();
+      }
     }
   }
 
-  public void connect(){
+  public void connect() {
 
     try {
-      Socket s =new Socket("127.0.0.1",8888);
+      s = new Socket("127.0.0.1", 8888);//这里就不要再定义s了,否则就成了局部变量
+      dos = new DataOutputStream(s.getOutputStream());//初始化一个输出流
       System.out.println("Connected!!");
     } catch (IOException e) {
       e.printStackTrace();
     }
 
 
+  }
+
+  public void disconnect(){
+    try {
+      dos.close();
+      s.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }
 

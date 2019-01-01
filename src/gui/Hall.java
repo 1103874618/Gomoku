@@ -5,6 +5,8 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class Hall extends JFrame {
   //传入的用户信息
@@ -34,6 +36,7 @@ public class Hall extends JFrame {
     super("大厅界面");
     //topBar.setLayout(null);
     //top.addTab("游戏大厅",topBarInside);
+    Board b = new Board();//棋盘预加载
     hor.setOrientation(SwingConstants.VERTICAL);
     hor.setDividerSize(6);
 
@@ -131,12 +134,12 @@ public class Hall extends JFrame {
             sitR[k].setIcon(new ImageIcon("IconRes/res/img/noone.gif"));
           }
           i.setIcon(userHead);
-          Board k = new Board();
+          //Board b = new Board();
           if (top.getTabCount() == 2){
             top.removeTabAt(1);
           }
 
-          top.addTab("五子棋游戏",k.boardAll);
+          top.addTab("五子棋游戏",b.boardAll);
         }
       });
       sitR[i] = new JButton(new ImageIcon("IconRes/res/img/noone.gif"));
@@ -150,11 +153,11 @@ public class Hall extends JFrame {
             sitR[k].setIcon(new ImageIcon("IconRes/res/img/noone.gif"));
           }
           i.setIcon(userHead);
-          Board k = new Board();
+
           if (top.getTabCount() == 2){
             top.removeTabAt(1);
           }
-          top.addTab("五子棋游戏",k.boardAll);
+          top.addTab("五子棋游戏",b.boardAll);
         }
       });
       sitSingle[i].add(sitL[i]);
@@ -183,11 +186,21 @@ public class Hall extends JFrame {
     //add(hor);
     this.setSize(820, 720);
     setVisible(true);
+    this.addWindowFocusListener(new WindowAdapter() {//窗口关闭时断开连接
+      @Override
+      public void windowClosing(WindowEvent e) {
+        b.disconnect();
+        System.out.println("disconnect");
+        System.exit(0);
+      }
+    });
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+
 
   }
 
-  private static JPanel makePanel(String text) {
+  private static JPanel makePanel(String text) {//画出棋盘
     JPanel p = new JPanel();
     p.add(new Label(text));
     p.setLayout(new GridLayout(1, 1));
