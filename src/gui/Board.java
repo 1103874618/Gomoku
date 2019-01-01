@@ -1,16 +1,14 @@
 package gui;
 
 import jdk.jfr.StackTrace;
-
+import server.ClientInfo;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -18,16 +16,45 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Observer;
 
-public class Board extends JFrame {//这里不要继承hall,否则每次调用board都会重新触发hall的构造函数
+public class Board extends JFrame implements MouseListener{//这里不要继承hall,否则每次调用board都会重新触发hall的构造函数
   //棋盘界面
   Socket s = null;//将socket共享出来
   DataOutputStream dos = null;
+  DataInputStream dis = null;
   JPanel boardAll = new JPanel();
   MyPanel mp;
   JTextField msg = new JTextField(5);
   JTextArea display = new JTextArea(3, 4);
+  private boolean beConnected = false;
 
-  Board() {
+  @Override
+  public void mouseClicked(MouseEvent e) {
+    System.out.println(e.getX());
+    System.out.println(e.getY());
+  }
+
+  @Override
+  public void mousePressed(MouseEvent e) {
+    System.out.println(e.getX());
+    System.out.println(e.getY());
+  }
+
+  @Override
+  public void mouseReleased(MouseEvent e) {
+
+  }
+
+  @Override
+  public void mouseEntered(MouseEvent e) {
+
+  }
+
+  @Override
+  public void mouseExited(MouseEvent e) {
+
+  }
+
+  Board(ClientInfo in) {
     boardAll.setLayout(null);
     JPanel checkBoard = new JPanel();
     JLabel topTip = new JLabel("<<<   五子棋游戏房间   >>>");
@@ -51,6 +78,12 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     begin.setBounds(190, 6, 80, 30);
     peace.setBounds(280, 6, 80, 30);
     loose.setBounds(370, 6, 80, 30);
+    exit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        dispose();
+      }
+    });
     boardButton.add(exit);
     boardButton.add(begin);
     boardButton.add(peace);
@@ -98,8 +131,9 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     JTabbedPane my = new JTabbedPane();
     JPanel myP = new JPanel();
     myP.setLayout(null);
-    JLabel myHead = new JLabel(new ImageIcon("IconRes/res/img/noone.gif"));
-    JLabel myName = new JLabel("无名氏");
+//    JLabel myHead = new JLabel(new ImageIcon("IconRes/res/img/noone.gif"));
+    JLabel myHead = new JLabel(in.getIcon());
+    JLabel myName = new JLabel(in.getName());
     myHead.setBounds(60, 10, 36, 36);
     myName.setBounds(100, 15, 80, 30);
     myP.add(myHead);
@@ -116,7 +150,7 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     JButton send = new JButton("发送");
     JPanel msgAndSend = new JPanel();
 
-    send.addActionListener(new TFListen());
+    send.addActionListener(new TFListen(in.getName()));//按钮发送信息
     msg.setBounds(0, 0, 120, 30);
     send.setBounds(120, 0, 80, 30);
     chat.add(display, BorderLayout.NORTH);
@@ -127,25 +161,49 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     msgAndSend.add(send);
     chat.add(msgAndSend, BorderLayout.SOUTH);
 
-    msg.addActionListener(new TFListen());
+    msg.addActionListener(new TFListen(in.getName()));//回车发送信息
     mp = new MyPanel();
     checkBoard.add(mp, "Center");
-    connect();
+    connect();//连接发送信息
+    new Thread(new RecvThread()).start();//新建接收线程
+
+    boardAll.addMouseListener(new MyMouse());
+
   }
 
   private class TFListen implements ActionListener {
 
+    String name = null;
     @Override
     public void actionPerformed(ActionEvent e) {
       String str = msg.getText().trim();//trim消除两边的空格
       //display.setText(str);
       msg.setText("");
       try {
-        dos.writeUTF(str);//将字符串写出去
+        dos.writeUTF(name+">>  "+str);//将字符串写出去
         dos.flush();
         //dos.close();
       } catch (IOException e1) {
         e1.printStackTrace();
+      }
+    }
+
+    public TFListen(String name){
+      this.name = name;
+    }
+  }
+
+  private class RecvThread implements Runnable{//接受数据线程
+    @Override
+    public void run() {
+      try {
+        while (beConnected){
+          String str = dis.readUTF();
+          //System.out.println(str);
+          display.setText(display.getText() +str + '\n');
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
       }
     }
   }
@@ -155,6 +213,8 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     try {
       s = new Socket("127.0.0.1", 8888);//这里就不要再定义s了,否则就成了局部变量
       dos = new DataOutputStream(s.getOutputStream());//初始化一个输出流
+      dis = new DataInputStream(s.getInputStream());
+      beConnected = true;
       System.out.println("Connected!!");
     } catch (IOException e) {
       e.printStackTrace();
@@ -179,6 +239,9 @@ class MyPanel extends JPanel {
 
   public void paint(Graphics g) {
     super.paint(g);
+    int[][] boardGrid = new int[15][15];
+
+
     try {
       checkBg = ImageIO.read(new File("IconRes/res/wuzi/board.gif"));
     } catch (IOException e) {
@@ -186,4 +249,34 @@ class MyPanel extends JPanel {
     }
     g.drawImage(checkBg, 0, 0, 550, 550, this);
   }
+
+}
+
+class MyMouse implements MouseListener {
+  @Override
+  public void mouseClicked(MouseEvent e) {
+    System.out.println(e.getX());
+    System.out.println(e.getY());
+  }
+
+  @Override
+  public void mousePressed(MouseEvent e) {
+
+  }
+
+  @Override
+  public void mouseReleased(MouseEvent e) {
+
+  }
+
+  @Override
+  public void mouseEntered(MouseEvent e) {
+
+  }
+
+  @Override
+  public void mouseExited(MouseEvent e) {
+
+  }
+
 }

@@ -1,9 +1,14 @@
 package gui;
 
+import server.ClientInfo;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.io.*;
+import java.net.Socket;
 
 public class Login extends JFrame {
   JLabel userLabel = new JLabel("用 户 名");
@@ -14,10 +19,18 @@ public class Login extends JFrame {
   JTextField userName = new JTextField();
   JTextField serverIP = new JTextField();
 
+
+  Socket s = null;//将socket共享出来
+  DataOutputStream dos = null;
+  DataInputStream dis = null;
+  ObjectOutputStream obo = null;
+  boolean beConnected = false;
+
   public Login() {
     super("登陆界面");
     JPanel pNorth = new JPanel();
     JPanel pSouth = new JPanel();
+
     //北区
     pNorth.setLayout(new BorderLayout());
     pNorth.add(userInfo, "North");
@@ -82,6 +95,16 @@ public class Login extends JFrame {
         userInfo[0] = userName.getText();
         userInfo[1] = serverIP.getText();
         userIco = userImage.getIcon();
+        ClientInfo clInfo = new ClientInfo(userInfo[0],userInfo[1],userIco);
+        Hall h = new Hall(clInfo);
+        dispose();
+//        try {
+//          obo.writeObject(clInfo);
+//          obo.flush();
+//        } catch (IOException e1) {
+//          e1.printStackTrace();
+//        }
+
         System.out.println("the user name is :" + userInfo[0]);
         System.out.println("the IP is :" + userInfo[1]);
       }
@@ -125,6 +148,24 @@ public class Login extends JFrame {
     this.setVisible(true);
     this.setSize(400, 450);
     this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+    //connect();
+  }
+
+  public void connect() {
+
+    try {
+      s = new Socket("127.0.0.1", 8888);//这里就不要再定义s了,否则就成了局部变量
+      dos = new DataOutputStream(s.getOutputStream());//初始化一个输出流
+      dis = new DataInputStream(s.getInputStream());
+      obo = new ObjectOutputStream(s.getOutputStream());
+      beConnected = true;
+      System.out.println("Connected!!");
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+
   }
 
 }

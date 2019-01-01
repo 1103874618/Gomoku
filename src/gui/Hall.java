@@ -1,18 +1,42 @@
 package gui;
 
+import server.ClientInfo;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
+import java.io.IOException;
 
-public class Hall extends JFrame {
+public class Hall extends JFrame implements MouseListener {
   //传入的用户信息
-  ImageIcon userHead;//头像
-  JLabel userN;//名字
+  Icon userHead;//头像
+  String userN;//名字
 
+  @Override
+  public void mouseClicked(MouseEvent e) {
+    System.out.println(e.getX());
+    System.out.println(e.getY());
+  }
+
+  @Override
+  public void mousePressed(MouseEvent e) {
+
+  }
+
+  @Override
+  public void mouseReleased(MouseEvent e) {
+
+  }
+
+  @Override
+  public void mouseEntered(MouseEvent e) {
+
+  }
+
+  @Override
+  public void mouseExited(MouseEvent e) {
+
+  }
 
   JTabbedPane top = new JTabbedPane(JTabbedPane.TOP);
 
@@ -32,11 +56,14 @@ public class Hall extends JFrame {
   JSplitPane hor = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, info, sit);
   JSplitPane infoSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, userInfoF, severInfoF);
 
-  public Hall() {
+  public Hall(ClientInfo in) {
     super("大厅界面");
+    userHead = in.getIcon();
+    userN = in.getName();
+
     //topBar.setLayout(null);
     //top.addTab("游戏大厅",topBarInside);
-    Board b = new Board();//棋盘预加载
+    Board b = new Board(in);//棋盘预加载
     hor.setOrientation(SwingConstants.VERTICAL);
     hor.setDividerSize(6);
 
@@ -87,7 +114,10 @@ public class Hall extends JFrame {
     userInfoF.setPreferredSize(new Dimension(250, 335));
     severInfoF.setPreferredSize(new Dimension(250, 335));
     JLabel userImage = new JLabel(new ImageIcon("IconRes\\res\\img\\boy1.gif"));//用户头像
-    JLabel userNmae = new JLabel("无 名 氏");//用户名字
+    //JLabel userImage = new JLabel(userHead);//用户头像
+    JLabel userNmae = new JLabel(userN);//用户名字
+    //JLabel userNmae = new JLabel("无 名 氏");//用户名字
+
 //    severInfoP.setBackground(Color.yellow);
 //    userInfoP.setBackground(Color.yellow);
     SpringLayout p = new SpringLayout();//用户信息面板布局
@@ -98,6 +128,9 @@ public class Hall extends JFrame {
     p.putConstraint(SpringLayout.NORTH, userNmae, 10, SpringLayout.SOUTH, userImage);
     userInfoP.add(userImage);
     userInfoP.add(userNmae);
+    severInfoP.setLayout(new BorderLayout());
+    JTextArea serverArea = new JTextArea(5,5);
+    severInfoP.add(serverArea,BorderLayout.SOUTH);
 
 
     //座位区
@@ -154,6 +187,12 @@ public class Hall extends JFrame {
           }
           i.setIcon(userHead);
 
+          try {
+            b.dos.writeUTF("1");
+          } catch (IOException e1) {
+            e1.printStackTrace();
+          }
+
           if (top.getTabCount() == 2){
             top.removeTabAt(1);
           }
@@ -195,8 +234,7 @@ public class Hall extends JFrame {
       }
     });
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-
+    addMouseListener(this);
 
   }
 
@@ -207,10 +245,12 @@ public class Hall extends JFrame {
     return p;
   }
 
+
+
 }
 
 class HallDemo {
   public static void main(String[] args) {
-    Hall a = new Hall();
+    //Hall a = new Hall();
   }
 }
