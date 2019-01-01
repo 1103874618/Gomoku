@@ -1,6 +1,7 @@
 package gui;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -97,6 +98,7 @@ public class Hall extends JFrame {
 
 
     //座位区
+    JLabel[] roomNum = new JLabel[15];//房间号
     JPanel[] sitSingle = new JPanel[15];
     JLabel[] userNL = new JLabel[15];
     JLabel[] sitTable = new JLabel[15];
@@ -106,6 +108,7 @@ public class Hall extends JFrame {
     //sitGroud.setLocale();
     //userNL = userN;
     for (int i = 0; i < 15; i++) {
+      roomNum[i] = new JLabel("- "+(i+1)+" -");
       sitSingle[i] = new JPanel();
       userNL[i] = new JLabel();
       sitSingle[i].setLayout(null);
@@ -115,14 +118,25 @@ public class Hall extends JFrame {
       //sitSingle[i].setBackground(Color.red);
       sitTable[i] = new JLabel(new ImageIcon("IconRes/res/img/xqnoone.gif"));
       sitTable[i].setBounds(60, 20, 53, 53);
+      roomNum[i].setBounds(80,66,40,30);
+      roomNum[i].setForeground(Color.white);
       sitL[i] = new JButton(new ImageIcon("IconRes/res/img/noone.gif"));
       sitL[i].setBounds(20, 25, 40, 45);
       sitL[i].addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
           JButton i = (JButton) e.getSource();
+          for(int k = 0;k<15;k++){
+            sitL[k].setIcon(new ImageIcon("IconRes/res/img/noone.gif"));
+            sitR[k].setIcon(new ImageIcon("IconRes/res/img/noone.gif"));
+          }
           i.setIcon(userHead);
-          //top.addTab();
+          Board k = new Board();
+          if (top.getTabCount() == 2){
+            top.removeTabAt(1);
+          }
+
+          top.addTab("五子棋游戏",k.boardAll);
         }
       });
       sitR[i] = new JButton(new ImageIcon("IconRes/res/img/noone.gif"));
@@ -131,7 +145,16 @@ public class Hall extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
           JButton i = (JButton) e.getSource();
+          for(int k = 0;k<15;k++){
+            sitL[k].setIcon(new ImageIcon("IconRes/res/img/noone.gif"));
+            sitR[k].setIcon(new ImageIcon("IconRes/res/img/noone.gif"));
+          }
           i.setIcon(userHead);
+          Board k = new Board();
+          if (top.getTabCount() == 2){
+            top.removeTabAt(1);
+          }
+          top.addTab("五子棋游戏",k.boardAll);
         }
       });
       sitSingle[i].add(sitL[i]);
@@ -139,6 +162,7 @@ public class Hall extends JFrame {
       sitSingle[i].add(sitR[i]);
       sitSingle[i].add(userNL[i]);
       sitGroud.add(sitSingle[i]);
+      sitSingle[i].add(roomNum[i]);
     }
 
 
@@ -169,7 +193,6 @@ public class Hall extends JFrame {
     p.setLayout(new GridLayout(1, 1));
     return p;
   }
-
 
 }
 
