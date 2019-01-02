@@ -10,7 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class ChatServer {
-  ClientInfo[] userInfo = new ClientInfo[30];//存储用户注册信息
+  //ClientInfo[] userInfo = new ClientInfo[30];//存储用户注册信息
   boolean statred = false;
   ServerSocket ss = null;
   List<Client> clients = new ArrayList<Client>();//保存每个客户端的连接

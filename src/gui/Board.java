@@ -2,6 +2,7 @@ package gui;
 
 import jdk.jfr.StackTrace;
 import server.ClientInfo;
+
 import java.awt.Font;
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -26,14 +27,15 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
   MyPanel mp;
   JTextField msg = new JTextField(5);
   JTextArea display = new JTextArea(3, 4);
+  JScrollPane displayScroll = new JScrollPane(display);
   JLabel myTurn = new JLabel();
   JLabel opTurn = new JLabel();
   //棋子坐标
   int x = 0;
   int y = 0;
   int[][] boardGrid = new int[15][15];
-  int blackCount  = 0;
-  int whiteCount  = 0;
+  int blackWin = 0;
+  int whiteWin = 0;
   private boolean beConnected = false;
   boolean isBlack = true;
 
@@ -66,7 +68,15 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     exit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-       System.exit(0);
+        System.exit(0);
+      }
+    });
+    loose.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        showAcceptLoose();
+        cleanBoard();
+        mp.repaint();
       }
     });
     boardButton.add(exit);
@@ -106,7 +116,7 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     JLabel opName = new JLabel("无名氏");
     opHead.setBounds(60, 10, 36, 36);
     opName.setBounds(100, 15, 80, 30);
-    opTurn.setBounds(80,70,60,30);
+    opTurn.setBounds(80, 70, 60, 30);
 
     opp.add(opHead);
     opp.add(opName);
@@ -124,7 +134,7 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     JLabel myName = new JLabel(in.getName());
     myHead.setBounds(60, 10, 36, 36);
     myName.setBounds(100, 15, 80, 30);
-    myTurn.setBounds(80,70,60,30);
+    myTurn.setBounds(80, 70, 60, 30);
     myP.add(myHead);
     myP.add(myName);
     myP.add(myTurn);
@@ -143,10 +153,12 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     send.addActionListener(new TFListen(in.getName()));//按钮发送信息
     msg.setBounds(0, 0, 120, 30);
     send.setBounds(120, 0, 80, 30);
-    chat.add(display, BorderLayout.NORTH);
+    chat.add(displayScroll, BorderLayout.NORTH);
     msgAndSend.setLayout(null);
     msgAndSend.setPreferredSize(new Dimension(150, 30));
-    display.setPreferredSize(new Dimension(150, 178));
+    //display.setPreferredSize(new Dimension(150, 178));
+    display.setEditable(false);
+    displayScroll.setPreferredSize(new Dimension(150, 178));
     msgAndSend.add(msg);
     msgAndSend.add(send);
     chat.add(msgAndSend, BorderLayout.SOUTH);
@@ -156,14 +168,249 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     checkBoard.add(mp, "Center");
     connect();//连接发送信息
     new Thread(new RecvThread()).start();//新建接收线程
-    for (int i = 0; i<15;i++){
-      for (int j = 0;j<15;j++){
-        boardGrid[i][j]=0;
+
+    for (int i = 0; i < 15; i++) {//数组初始化
+      for (int j = 0; j < 15; j++) {
+        boardGrid[i][j] = 0;
       }
     }
 
-    begin.addActionListener(new beginButtonAction(mp,this));//点击开始按钮开始下棋
+    begin.addActionListener(new beginButtonAction(mp, this));//点击开始按钮开始下棋
 
+  }
+  cell newCell(int se,int ox,int oy){//新建棋子类
+   return new cell(se,ox,oy);
+  }
+
+  void cleanBoard(){
+    boardGrid = new int[15][15];
+    blackWin = 0;
+    whiteWin = 0;
+    isBlack = true;
+  }
+
+  class cell {//棋子类
+    int self;//为1为黑棋,2为白棋
+    //数组中的坐标
+    int x;//第x行
+    int y;
+    int horCount = 0;
+    int verCount = 0;
+    int pieCount = 0;
+    int naCount = 0;
+    int t = 0, b = 0, l = 0, r = 0;
+
+    cell(int se, int ox, int oy) {
+      self = se;
+      x = ox;
+      y = oy;
+    }
+    void judge(){
+        judgeVer();
+        judgeHor();
+        judgePie();
+        judgeNa();
+
+//      System.out.println(self);
+//      System.out.println(horCount + "  "+ verCount+ "  " + pieCount+ "  " + naCount);
+//      for (int i = 0;i<15;i++){
+//        for (int j = 0; j<15;j++){
+//          System.out.print(boardGrid[i][j]);
+//        }
+//        System.out.println("");
+//      }
+
+    }
+
+    void judgeVer() {//纵向判断
+      try {
+        if (x+1<15) {
+          if (boardGrid[x + 1][y] == self && x < 15) {
+            verCount = verCount + 1;
+            if (boardGrid[x + 2][y] == self && x < 15) {
+              verCount = verCount + 1;
+              if (boardGrid[x + 3][y] == self && x < 15) {
+                verCount = verCount + 1;
+                if (boardGrid[x + 4][y] == self && x < 15) {
+                  verCount = verCount + 1;
+                }
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+
+      }
+
+
+      try {
+        if (boardGrid[x - 1][y] == self && x >= 0) {
+          verCount = verCount + 1;
+          if (boardGrid[x - 2][y] == self && x >= 0) {
+            verCount = verCount + 1;
+            if (boardGrid[x - 3][y] == self && x >= 0) {
+              verCount = verCount + 1;
+              if (boardGrid[x - 4][y] == self && x >= 0) {
+                verCount = verCount + 1;
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+
+      }
+
+
+      if (verCount >= 4) {
+        if (self == 1) {
+          blackWin = 1;
+        } else {
+          whiteWin = 1;
+        }
+      }
+    }
+
+    void judgeHor() {
+
+      try {
+        if (boardGrid[x][y + 1] == self && y < 15) {
+          horCount = horCount + 1;
+          if (boardGrid[x][y + 2] == self && y < 15) {
+            horCount = horCount + 1;
+            if (boardGrid[x][y + 3] == self && y < 15) {
+              horCount = horCount + 1;
+              if (boardGrid[x][y + 4] == self && y < 15) {
+                horCount = horCount + 1;
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+
+
+      try {
+        if (boardGrid[x][y - 1] == self && y >= 0) {
+          horCount = horCount + 1;
+          if (boardGrid[x][y - 2] == self && y >= 0) {
+            horCount = horCount + 1;
+            if (boardGrid[x][y - 3] == self && y >= 0) {
+              horCount = horCount + 1;
+              if (boardGrid[x][y - 4] == self && y >= 0) {
+                horCount = horCount + 1;
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+
+      }
+
+
+      if (horCount >= 4) {
+        if (self == 1) {
+          blackWin = 1;
+        } else {
+          whiteWin = 1;
+        }
+      }
+    }
+
+    void judgePie() {
+
+      try {
+        if (boardGrid[x - 1][y + 1] == self && y < 15 && x >= 0) {
+          pieCount = pieCount + 1;
+          if (boardGrid[x - 2][y + 2] == self && y < 15 && x >= 0) {
+            pieCount = pieCount + 1;
+            if (boardGrid[x - 3][y + 3] == self && y < 15 && x >= 0) {
+              pieCount = pieCount + 1;
+              if (boardGrid[x - 4][y + 4] == self && y < 15 && x >= 0) {
+                pieCount = pieCount + 1;
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+
+      }
+
+
+      try {
+        if (boardGrid[x + 1][y - 1] == self && x < 15 && y >= 0) {
+          pieCount = pieCount + 1;
+          if (boardGrid[x + 2][y - 2] == self && x < 15 && y >= 0) {
+            pieCount = pieCount + 1;
+            if (boardGrid[x + 3][y - 3] == self && x < 15 && y >= 0) {
+              pieCount = pieCount + 1;
+              if (boardGrid[x + 4][y - 4] == self && x < 15 && y >= 0) {
+                pieCount = pieCount + 1;
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+
+      }
+
+
+      if (pieCount >= 4) {
+        if (self == 1) {
+          blackWin = 1;
+        } else {
+          whiteWin = 1;
+        }
+      }
+    }
+
+    void judgeNa() {
+
+      try {
+        if (boardGrid[x - 1][y - 1] == self && x >= 0 && y >= 0) {
+          naCount = naCount + 1;
+          if (boardGrid[x - 2][y - 2] == self && x >= 0 && y >= 0) {
+            naCount = naCount + 1;
+            if (boardGrid[x - 3][y - 3] == self && x >= 0 && y >= 0) {
+              naCount = naCount + 1;
+              if (boardGrid[x - 4][y - 4] == self && x >= 0 && y >= 0) {
+                naCount = naCount + 1;
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+
+      }
+
+
+      try {
+        if (boardGrid[x + 1][y + 1] == self && x < 15 && y < 15) {
+          naCount = naCount + 1;
+          if (boardGrid[x + 2][y + 2] == self && x < 15 && y < 15) {
+            naCount = naCount + 1;
+            if (boardGrid[x + 3][y + 3] == self && x < 15 && y < 15) {
+              naCount = naCount + 1;
+              if (boardGrid[x + 4][y + 4] == self && x < 15 && y < 15) {
+                naCount = naCount + 1;
+              }
+            }
+          }
+        }
+      } catch (Exception e) {
+
+      }
+
+      if (naCount>=4){
+        if (self == 1){
+          blackWin = 1;
+        }else {
+          whiteWin = 1;
+        }
+      }
+
+
+    }
   }
 
   private class TFListen implements ActionListener {
@@ -208,7 +455,7 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
   public void connect() {
 
     try {
-      s = new Socket("127.0.0.1", 8888);//这里就不要再定义s了,否则就成了局部变量
+      s = new Socket("127.0.0.1", 8888);//这里不再定义s,否则就成局部变量
       dos = new DataOutputStream(s.getOutputStream());//初始化一个输出流
       dis = new DataInputStream(s.getInputStream());
       beConnected = true;
@@ -229,62 +476,79 @@ public class Board extends JFrame {//这里不要继承hall,否则每次调用bo
     }
   }
 
-  class beginButtonAction implements ActionListener{
+  class beginButtonAction implements ActionListener {
     JPanel j;
     Board bb;
     MyMouseListen mm;
-    beginButtonAction(JPanel n,Board b){
-      j=n;
+
+    beginButtonAction(JPanel n, Board b) {
+      j = n;
       bb = b;
 
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-      mm = new MyMouseListen(j,bb);
+      mm = new MyMouseListen(j, bb);
 
     }
 
-}
+  }
 
-class MyPanel extends JPanel {
-  //paint的真正原理是在一个自定义的JPanel上draw出自己的图案,在将JPanel add 到所需的地方...搞了我半天
-  BufferedImage checkBg;
-  BufferedImage blackCheck;
-  BufferedImage whiteCheck;
+  class MyPanel extends JPanel {
+    //paint在一个自定义的JPanel上draw出自己的图案,在将JPanel add 到所需的地方
+    BufferedImage checkBg;
+    BufferedImage blackCheck;
+    BufferedImage whiteCheck;
 
-  public void paint(Graphics g) {
-    super.paint(g);
-    try {
-      checkBg = ImageIO.read(new File("IconRes/res/wuzi/board.gif"));
-      blackCheck = ImageIO.read(new File("IconRes/res/wuzi/heiqi.gif"));
-      whiteCheck = ImageIO.read(new File("IconRes/res/wuzi/baiqi.gif"));
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    g.drawImage(checkBg, 0, 0, 550, 550, this);
-    for (int i=0;i<15;i++){
-      for (int j= 0;j<15;j++){
-        if (boardGrid[i][j] == 1){
-          g.drawImage(blackCheck,25+(i*36)-15,28+(j*36)-15,this);
-        }if (boardGrid[i][j] == 2){
-          g.drawImage(whiteCheck,25+(i*36)-15,28+(j*36)-15,this);
-        }else {
-          g.drawImage(null,25+(i*36)-15,28+(j*36)-15,this);
+    public void paint(Graphics g) {
+      super.paint(g);
+      try {
+        checkBg = ImageIO.read(new File("IconRes/res/wuzi/board.gif"));
+        blackCheck = ImageIO.read(new File("IconRes/res/wuzi/heiqi.gif"));
+        whiteCheck = ImageIO.read(new File("IconRes/res/wuzi/baiqi.gif"));
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      g.drawImage(checkBg, 0, 0, 550, 550, this);
+      for (int i = 0; i < 15; i++) {
+        for (int j = 0; j < 15; j++) {
+          if (boardGrid[i][j] == 1) {
+            g.drawImage(blackCheck,  28 + (j * 36) - 19, 25 + (i * 36) - 17,this);
+          }
+          if (boardGrid[i][j] == 2) {
+            g.drawImage(whiteCheck,  28 + (j * 36) - 19,25 + (i * 36) - 17, this);
+          } else {
+            g.drawImage(null, 28 + (j * 36) - 19,25 + (i * 36) - 17,  this);
+          }
         }
       }
     }
+
   }
 
-}
-
- boolean judgeBlack(){
-    int togetherCount = 0;
-    for (int i = 0;i<15;i++){
-      boardGrid.[0][i] =
+  void showBlackWin(){
+    JOptionPane.showMessageDialog(null,"黑方胜");
+  }
+  void showWhiteWin(){
+    JOptionPane.showMessageDialog(null,"白方胜");
+  }
+  void showAcceptLoose(){
+    if (isBlack == true){
+      JOptionPane.showMessageDialog(null,"黑方认输,白方胜");
+    }else {
+      JOptionPane.showMessageDialog(null,"白方认输,黑方胜");
     }
-   if()
- }
+
+  }
+
+//  boolean judgeBlack() {
+//    int togetherCount = 0;
+//    for (int i = 0; i < 15; i++) {
+//      boardGrid.[0][i] =
+//    }
+//    if ()
+//  }
 }
 
 
