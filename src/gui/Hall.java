@@ -3,6 +3,7 @@ package gui;
 import server.ClientInfo;
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.plaf.IconUIResource;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
@@ -251,6 +252,9 @@ public class Hall extends JFrame implements MouseListener {
 
 class HallDemo {
   public static void main(String[] args) {
-    //Hall a = new Hall();
+    ImageIcon g = new ImageIcon("IconRes/res/img/noone.gif");
+    JLabel b = new JLabel(g);
+    ClientInfo text = new ClientInfo("","",b.getIcon());
+    Hall a = new Hall(text);
   }
 }

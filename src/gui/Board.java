@@ -2,6 +2,7 @@ package gui;
 
 import jdk.jfr.StackTrace;
 import server.ClientInfo;
+import java.awt.Font;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -16,7 +17,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Observer;
 
-public class Board extends JFrame implements MouseListener{//这里不要继承hall,否则每次调用board都会重新触发hall的构造函数
+public class Board extends JFrame {//这里不要继承hall,否则每次调用board都会重新触发hall的构造函数
   //棋盘界面
   Socket s = null;//将socket共享出来
   DataOutputStream dos = null;
@@ -25,36 +26,20 @@ public class Board extends JFrame implements MouseListener{//这里不要继承h
   MyPanel mp;
   JTextField msg = new JTextField(5);
   JTextArea display = new JTextArea(3, 4);
+  JLabel myTurn = new JLabel();
+  JLabel opTurn = new JLabel();
+  //棋子坐标
+  int x = 0;
+  int y = 0;
+  int[][] boardGrid = new int[15][15];
+  int blackCount  = 0;
+  int whiteCount  = 0;
   private boolean beConnected = false;
+  boolean isBlack = true;
 
-  @Override
-  public void mouseClicked(MouseEvent e) {
-    System.out.println(e.getX());
-    System.out.println(e.getY());
-  }
-
-  @Override
-  public void mousePressed(MouseEvent e) {
-    System.out.println(e.getX());
-    System.out.println(e.getY());
-  }
-
-  @Override
-  public void mouseReleased(MouseEvent e) {
-
-  }
-
-  @Override
-  public void mouseEntered(MouseEvent e) {
-
-  }
-
-  @Override
-  public void mouseExited(MouseEvent e) {
-
-  }
 
   Board(ClientInfo in) {
+
     boardAll.setLayout(null);
     JPanel checkBoard = new JPanel();
     JLabel topTip = new JLabel("<<<   五子棋游戏房间   >>>");
@@ -81,7 +66,7 @@ public class Board extends JFrame implements MouseListener{//这里不要继承h
     exit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        dispose();
+       System.exit(0);
       }
     });
     boardButton.add(exit);
@@ -121,8 +106,11 @@ public class Board extends JFrame implements MouseListener{//这里不要继承h
     JLabel opName = new JLabel("无名氏");
     opHead.setBounds(60, 10, 36, 36);
     opName.setBounds(100, 15, 80, 30);
+    opTurn.setBounds(80,70,60,30);
+
     opp.add(opHead);
     opp.add(opName);
+    opp.add(opTurn);
     op.addTab("对手", opp);
     opponentInfo.setLayout(null);
     op.setBounds(0, 0, 200, 200);
@@ -136,8 +124,10 @@ public class Board extends JFrame implements MouseListener{//这里不要继承h
     JLabel myName = new JLabel(in.getName());
     myHead.setBounds(60, 10, 36, 36);
     myName.setBounds(100, 15, 80, 30);
+    myTurn.setBounds(80,70,60,30);
     myP.add(myHead);
     myP.add(myName);
+    myP.add(myTurn);
     my.addTab("自己", myP);
     myInfo.setLayout(null);
     my.setBounds(0, 0, 200, 200);
@@ -166,21 +156,27 @@ public class Board extends JFrame implements MouseListener{//这里不要继承h
     checkBoard.add(mp, "Center");
     connect();//连接发送信息
     new Thread(new RecvThread()).start();//新建接收线程
+    for (int i = 0; i<15;i++){
+      for (int j = 0;j<15;j++){
+        boardGrid[i][j]=0;
+      }
+    }
 
-    boardAll.addMouseListener(new MyMouse());
+    begin.addActionListener(new beginButtonAction(mp,this));//点击开始按钮开始下棋
 
   }
 
   private class TFListen implements ActionListener {
 
     String name = null;
+
     @Override
     public void actionPerformed(ActionEvent e) {
       String str = msg.getText().trim();//trim消除两边的空格
       //display.setText(str);
       msg.setText("");
       try {
-        dos.writeUTF(name+">>  "+str);//将字符串写出去
+        dos.writeUTF(name + ">>  " + str);//将字符串写出去
         dos.flush();
         //dos.close();
       } catch (IOException e1) {
@@ -188,19 +184,20 @@ public class Board extends JFrame implements MouseListener{//这里不要继承h
       }
     }
 
-    public TFListen(String name){
+    public TFListen(String name) {
       this.name = name;
     }
   }
 
-  private class RecvThread implements Runnable{//接受数据线程
+  private class RecvThread implements Runnable {//接受数据线程
+
     @Override
     public void run() {
       try {
-        while (beConnected){
+        while (beConnected) {
           String str = dis.readUTF();
           //System.out.println(str);
-          display.setText(display.getText() +str + '\n');
+          display.setText(display.getText() + str + '\n');
         }
       } catch (IOException e) {
         e.printStackTrace();
@@ -223,7 +220,7 @@ public class Board extends JFrame implements MouseListener{//这里不要继承h
 
   }
 
-  public void disconnect(){
+  public void disconnect() {
     try {
       dos.close();
       s.close();
@@ -231,52 +228,63 @@ public class Board extends JFrame implements MouseListener{//这里不要继承h
       e.printStackTrace();
     }
   }
+
+  class beginButtonAction implements ActionListener{
+    JPanel j;
+    Board bb;
+    MyMouseListen mm;
+    beginButtonAction(JPanel n,Board b){
+      j=n;
+      bb = b;
+
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      mm = new MyMouseListen(j,bb);
+
+    }
+
 }
 
 class MyPanel extends JPanel {
   //paint的真正原理是在一个自定义的JPanel上draw出自己的图案,在将JPanel add 到所需的地方...搞了我半天
   BufferedImage checkBg;
+  BufferedImage blackCheck;
+  BufferedImage whiteCheck;
 
   public void paint(Graphics g) {
     super.paint(g);
-    int[][] boardGrid = new int[15][15];
-
-
     try {
       checkBg = ImageIO.read(new File("IconRes/res/wuzi/board.gif"));
+      blackCheck = ImageIO.read(new File("IconRes/res/wuzi/heiqi.gif"));
+      whiteCheck = ImageIO.read(new File("IconRes/res/wuzi/baiqi.gif"));
     } catch (IOException e) {
       e.printStackTrace();
     }
     g.drawImage(checkBg, 0, 0, 550, 550, this);
+    for (int i=0;i<15;i++){
+      for (int j= 0;j<15;j++){
+        if (boardGrid[i][j] == 1){
+          g.drawImage(blackCheck,25+(i*36)-15,28+(j*36)-15,this);
+        }if (boardGrid[i][j] == 2){
+          g.drawImage(whiteCheck,25+(i*36)-15,28+(j*36)-15,this);
+        }else {
+          g.drawImage(null,25+(i*36)-15,28+(j*36)-15,this);
+        }
+      }
+    }
   }
 
 }
 
-class MyMouse implements MouseListener {
-  @Override
-  public void mouseClicked(MouseEvent e) {
-    System.out.println(e.getX());
-    System.out.println(e.getY());
-  }
-
-  @Override
-  public void mousePressed(MouseEvent e) {
-
-  }
-
-  @Override
-  public void mouseReleased(MouseEvent e) {
-
-  }
-
-  @Override
-  public void mouseEntered(MouseEvent e) {
-
-  }
-
-  @Override
-  public void mouseExited(MouseEvent e) {
-
-  }
-
+ boolean judgeBlack(){
+    int togetherCount = 0;
+    for (int i = 0;i<15;i++){
+      boardGrid.[0][i] =
+    }
+   if()
+ }
 }
+
+
